@@ -102,3 +102,4 @@ C:\Users\Thunchanok Sintoem\OneDrive\LeaveSystem\obj\Debug\net8.0\refint\LeaveSy
 C:\Users\Thunchanok Sintoem\OneDrive\LeaveSystem\obj\Debug\net8.0\LeaveSystem.pdb
 C:\Users\Thunchanok Sintoem\OneDrive\LeaveSystem\obj\Debug\net8.0\LeaveSystem.genruntimeconfig.cache
 C:\Users\Thunchanok Sintoem\OneDrive\LeaveSystem\obj\Debug\net8.0\ref\LeaveSystem.dll
+C:\Users\Thunchanok Sintoem\OneDrive\LeaveSystem\obj\Debug\net8.0\LeaveSystem.sourcelink.json
