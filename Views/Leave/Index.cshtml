@@ -1,0 +1,191 @@
+@model IEnumerable<LeaveSystem.Models.LeaveRequest>
+@{
+    ViewData["Title"] = "ระบบขอลาและสิทธิวันลา";
+    var users = ViewBag.Users as List<LeaveSystem.Models.User>;
+    var balances = ViewBag.BalanceSummary as IEnumerable<dynamic>;
+    int? selectedUserId = ViewBag.SelectedUserId;
+    bool isAdmin = ViewBag.IsAdmin == true;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success border-0 rounded-4 shadow-sm alert-dismissible fade show d-flex align-items-center gap-2">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <div>@TempData["Success"]</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 rounded-4 shadow-sm alert-dismissible fade show d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div>@TempData["Error"]</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- ส่วนหัวหน้าเว็บ -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">
+            @(isAdmin ? "แดชบอร์ดภาพรวมและอนุมัติใบลา" : "สิทธิวันลาและประวัติการลาของฉัน")
+        </h4>
+        <p class="text-muted small mb-0">
+            @(isAdmin ? "ตรวจสอบโควตาวันลาและพิจารณาคำขอลาของพนักงานทั้งหมด" : "ตรวจสอบวันลาคงเหลือและติดตามสถานะใบลาของคุณ")
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        @if (isAdmin)
+        {
+            <form method="get" asp-action="Index">
+                <select name="filterUserId" class="form-select rounded-3 border-0 shadow-sm" onchange="this.form.submit()">
+                    <option value="">👥 พนักงานทุกคน</option>
+                    @if (users != null)
+                    {
+                        foreach (var u in users)
+                        {
+                            <option value="@u.Id" selected="@(selectedUserId == u.Id)">@u.EmployeeCode - @u.FullName</option>
+                        }
+                    }
+                </select>
+            </form>
+        }
+        <a asp-action="Create" class="btn btn-primary btn-rounded px-4 shadow-sm d-flex align-items-center gap-2">
+            <i class="bi bi-plus-lg"></i> ยื่นใบลาใหม่
+        </a>
+    </div>
+</div>
+
+<!-- การ์ดแสดงสิทธิวันลาคงเหลือพร้อมแถบ Progress Bar -->
+<div class="mb-2 d-flex align-items-center gap-2">
+    <span class="fw-semibold text-secondary small text-uppercase">📊 สิทธิวันลาคงเหลือประจำปี</span>
+</div>
+<div class="row g-3 mb-5">
+    @if (balances != null)
+    {
+        foreach (var b in balances)
+        {
+            int percent = b.TotalDays > 0 ? (int)((double)b.RemainingDays / b.TotalDays * 100) : 0;
+            string barColor = b.LeaveType == "ลาพักร้อน" ? "bg-primary" : (b.LeaveType == "ลากิจ" ? "bg-warning" : "bg-info");
+            string iconClass = b.LeaveType == "ลาพักร้อน" ? "bi-sun text-primary" : (b.LeaveType == "ลากิจ" ? "bi-briefcase text-warning" : "bi-heart-pulse text-info");
+
+            <div class="col-12 col-sm-6 col-lg-4">
+                <div class="card card-modern h-100 p-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bg-light rounded-3 p-2"><i class="bi @iconClass fs-5"></i></span>
+                            <div>
+                                <div class="fw-bold text-dark">@b.LeaveType</div>
+                                @if (isAdmin)
+                                {
+                                    <div class="small text-muted">@b.UserName (@b.EmployeeCode)</div>
+                                }
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-dark border rounded-pill">ปี @b.Year</span>
+                    </div>
+
+                    <div class="mt-2 d-flex justify-content-between align-items-baseline">
+                        <div>
+                            <span class="fs-3 fw-bold text-dark">@b.RemainingDays</span>
+                            <span class="small text-muted">/ @b.TotalDays วัน</span>
+                        </div>
+                        <span class="small text-muted">ใช้ไปแล้ว @b.UsedDays วัน</span>
+                    </div>
+
+                    <div class="progress mt-2 rounded-pill" style="height: 8px;">
+                        <div class="progress-bar @barColor rounded-pill" style="width: @percent%"></div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- รายการคำขอลา -->
+<div class="mb-3 d-flex align-items-center justify-content-between">
+    <span class="fw-semibold text-secondary small text-uppercase">
+        @(isAdmin ? "📝 รายการคำขอลาทั้งหมด" : "📝 ประวัติคำขอลาของฉัน")
+    </span>
+    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">ทั้งหมด @Model.Count() รายการ</span>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card card-modern p-5 text-center bg-white">
+        <div class="text-muted mb-2" style="font-size: 2.5rem;"><i class="bi bi-inbox"></i></div>
+        <h6 class="fw-semibold text-secondary">ยังไม่มีรายการคำขอลาในขณะนี้</h6>
+        <p class="small text-muted mb-0">กดปุ่ม "+ ยื่นใบลาใหม่" ด้านบนเพื่อสร้างคำขอลา</p>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var item in Model)
+        {
+            string badgeClass = item.Status == "Approved" ? "bg-success bg-opacity-10 text-success border-success" :
+                                (item.Status == "Rejected" ? "bg-danger bg-opacity-10 text-danger border-danger" :
+                                "bg-warning bg-opacity-10 text-warning border-warning");
+            string statusIcon = item.Status == "Approved" ? "bi-check-circle-fill" :
+                                (item.Status == "Rejected" ? "bi-x-circle-fill" : "bi-hourglass-split");
+            string statusText = item.Status == "Approved" ? "อนุมัติแล้ว" :
+                                (item.Status == "Rejected" ? "ไม่อนุมัติ" : "รอพิจารณา");
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card card-modern h-100 p-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge bg-light text-secondary border mb-1">#@item.Id • @item.LeaveType</span>
+                            <h6 class="fw-bold mb-0">@item.User?.FullName</h6>
+                        </div>
+                        <span class="badge border rounded-pill px-3 py-2 @badgeClass">
+                            <i class="bi @statusIcon me-1"></i> @statusText
+                        </span>
+                    </div>
+
+                    <div class="bg-light rounded-3 p-3 mb-3 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted"><i class="bi bi-calendar-range me-1"></i> วันที่ลา:</span>
+                            <span class="fw-semibold">@item.StartDate.ToString("dd/MM/yyyy") - @item.EndDate.ToString("dd/MM/yyyy")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted"><i class="bi bi-clock me-1"></i> จำนวนวัน:</span>
+                            <span class="fw-bold text-primary">@item.TotalDays วันทำการ</span>
+                        </div>
+                        <div class="border-top pt-2 text-secondary">
+                            <strong>เหตุผล:</strong> @item.Reason
+                        </div>
+                        @if (!string.IsNullOrEmpty(item.ReviewerNote))
+                        {
+                            <div class="mt-2 p-2 bg-white rounded border text-primary">
+                                <i class="bi bi-chat-left-text me-1"></i> <strong>หมายเหตุ:</strong> @item.ReviewerNote
+                            </div>
+                        }
+                    </div>
+
+                    @if (isAdmin)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="mt-auto pt-2 border-top">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <input type="text" name="reviewerNote" class="form-control form-control-sm rounded-3 mb-2 bg-light border-0" placeholder="เพิ่มหมายเหตุพิจารณา..." value="@item.ReviewerNote" />
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="newStatus" value="Approved" class="btn btn-success btn-sm flex-fill rounded-3" @(item.Status == "Approved" ? "disabled" : "")>
+                                    <i class="bi bi-check-lg"></i> อนุมัติ
+                                </button>
+                                <button type="submit" name="newStatus" value="Rejected" class="btn btn-outline-danger btn-sm flex-fill rounded-3" @(item.Status == "Rejected" ? "disabled" : "")>
+                                    <i class="bi bi-x-lg"></i> ไม่อนุมัติ
+                                </button>
+                                @if (item.Status != "Pending")
+                                {
+                                    <button type="submit" name="newStatus" value="Pending" class="btn btn-light border btn-sm rounded-3" title="เปลี่ยนกลับเป็นรอพิจารณา">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                }
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
